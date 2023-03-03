@@ -76,10 +76,10 @@ impl<'de> RollingFileAppenderConfig {
     pub fn check_valid(&self) -> anyhow::Result<()> {
         match (&self.path, &self.path_ext)  {
             (Some(_), Some(_)) => {
-                return Err(anyhow!("path and path_ext must be set only single one!"));
+                return Err(anyhow!("only one of path and path_ext must be set!"));
             }, 
             (None, None) => {
-                return Err(anyhow!("path and path_ext must be set only single one!"));
+                return Err(anyhow!("only one of path and path_ext must be set!"));
             }, 
             _ => {
                 return Ok(())
