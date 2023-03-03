@@ -19,6 +19,7 @@
 use derivative::Derivative;
 use log::Record;
 use parking_lot::Mutex;
+use anyhow::anyhow;
 use std::{
     fs::{self, File, OpenOptions},
     io::{self, BufWriter, Write},
@@ -47,10 +48,44 @@ pub mod policy;
 #[derive(Clone, Eq, PartialEq, Hash, Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RollingFileAppenderConfig {
-    path: String,
+    #[serde(default = "RollingFileAppenderConfig::default_path")]
+    path: Option<String>,
+    #[serde(default = "RollingFileAppenderConfig::default_path_ext")]
+    path_ext: Option<String>,   // for impletment that roll a file with date
     append: Option<bool>,
     encoder: Option<EncoderConfig>,
     policy: Policy,
+}
+
+#[cfg(feature = "config_parsing")]
+impl<'de> RollingFileAppenderConfig {
+    /// default path
+    #[cfg(feature = "config_parsing")]
+    pub fn default_path() -> Option<String> {
+        None
+    } 
+
+    /// default path_ext
+    #[cfg(feature = "config_parsing")]
+    pub fn default_path_ext() -> Option<String> {
+        None
+    } 
+
+    /// check the path and path_ext to ensure that only one of them is set 
+    #[cfg(feature = "config_parsing")]
+    pub fn check_valid(&self) -> anyhow::Result<()> {
+        match (&self.path, &self.path_ext)  {
+            (Some(_), Some(_)) => {
+                return Err(anyhow!("path and path_ext must be set only single one!"));
+            }, 
+            (None, None) => {
+                return Err(anyhow!("path and path_ext must be set only single one!"));
+            }, 
+            _ => {
+                return Ok(())
+            }
+        };
+   }
 }
 
 #[cfg(feature = "config_parsing")]
@@ -331,6 +366,8 @@ impl Deserialize for RollingFileAppenderDeserializer {
         config: RollingFileAppenderConfig,
         deserializers: &Deserializers,
     ) -> anyhow::Result<Box<dyn Append>> {
+        config.check_valid()?;
+
         let mut builder = RollingFileAppender::builder();
         if let Some(append) = config.append {
             builder = builder.append(append);
@@ -341,7 +378,7 @@ impl Deserialize for RollingFileAppenderDeserializer {
         }
 
         let policy = deserializers.deserialize(&config.policy.kind, config.policy.config)?;
-        let appender = builder.build(config.path, policy)?;
+        let appender = builder.build(config.path.unwrap(), policy)?;
         Ok(Box::new(appender))
     }
 }
