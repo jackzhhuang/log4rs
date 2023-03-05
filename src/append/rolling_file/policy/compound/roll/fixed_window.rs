@@ -194,16 +194,12 @@ where
     temp
 }
 
-fn replace_var(pattern: &str, base: u32) -> String {
+fn replace_var(pattern: &str, base: u32, now: &Option<String>) -> String {
     let mut p = pattern.replace("{}", &base.to_string());
-    if pattern.contains("{d}") {
-        let now = chrono::prelude::Local::now().format("%Y%m%d").to_string();
-
+    if let Some(now) = now {
         let re = Regex::new(r"\{d\}").unwrap();
-
-        p = re.replace_all(&p, &now).to_string();
+        p = re.replace_all(&p, now).to_string();
     }
-
     p
 }
 
@@ -215,7 +211,11 @@ fn rotate(
     count: u32,
     file: PathBuf,
 ) -> io::Result<()> {
-    let dst_0 = expand_env_vars(replace_var(&pattern, base));
+    let mut now = None;
+    if pattern.contains("{d}") {
+        now = Some(chrono::prelude::Local::now().format("%Y%m%d").to_string());
+    }
+    let dst_0 = expand_env_vars(replace_var(&pattern, base, &now));
 
     if let Some(parent) = Path::new(dst_0.as_ref()).parent() {
         fs::create_dir_all(parent)?;
@@ -232,8 +232,8 @@ fn rotate(
     };
 
     for i in (base..base + count - 1).rev() {
-        let src = expand_env_vars(replace_var(&pattern, i));
-        let dst = expand_env_vars(replace_var(&pattern, i + 1));
+        let src = expand_env_vars(replace_var(&pattern, i, &now));
+        let dst = expand_env_vars(replace_var(&pattern, i + 1, &now));
 
         if parent_varies {
             if let Some(parent) = Path::new(dst.as_ref()).parent() {
