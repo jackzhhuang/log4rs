@@ -19,7 +19,6 @@
 use derivative::Derivative;
 use log::Record;
 use parking_lot::Mutex;
-use anyhow::anyhow;
 use std::{
     fs::{self, File, OpenOptions},
     io::{self, BufWriter, Write},

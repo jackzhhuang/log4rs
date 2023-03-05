@@ -213,7 +213,7 @@ fn rotate(
 ) -> io::Result<()> {
     let mut now = None;
     if pattern.contains("{d}") {
-        now = Some(chrono::prelude::Local::now().format("%Y%m%d").to_string());
+        now = Some(chrono::Local::now().format("%Y%m%d").to_string());
     }
     let dst_0 = expand_env_vars(replace_var(&pattern, base, &now));
 

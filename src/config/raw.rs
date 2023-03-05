@@ -216,6 +216,12 @@ impl Default for Deserializers {
             append::rolling_file::policy::compound::trigger::size::SizeTriggerDeserializer,
         );
 
+        #[cfg(feature = "date_trigger")]
+        d.insert(
+            "date",
+            append::rolling_file::policy::compound::trigger::date::DateTriggerDeserializer,
+        );
+
         #[cfg(feature = "json_encoder")]
         d.insert("json", encode::json::JsonEncoderDeserializer);
 

@@ -12,6 +12,8 @@ use crate::append::rolling_file::{policy::compound::trigger::Trigger, LogFile};
 #[cfg(feature = "config_parsing")]
 use crate::config::{Deserialize, Deserializers};
 
+use chrono;
+
 /// Configuration for the size trigger.
 #[cfg(feature = "config_parsing")]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default, serde::Deserialize)]
@@ -19,6 +21,8 @@ use crate::config::{Deserialize, Deserializers};
 pub struct SizeTriggerConfig {
     #[serde(deserialize_with = "deserialize_limit")]
     limit: u64,
+    #[serde(deserialize_with = "deserialize_date")]
+    date: bool,
 }
 
 #[cfg(feature = "config_parsing")]
@@ -99,22 +103,70 @@ where
     d.deserialize_any(V)
 }
 
+#[cfg(feature = "config_parsing")]
+fn deserialize_date<'de, D>(d: D) -> Result<bool, D::Error>
+where
+    D: de::Deserializer<'de>,
+{
+    struct V;
+
+    impl<'de2> de::Visitor<'de2> for V {
+        type Value = bool;
+
+        fn expecting(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+            fmt.write_str("true or false")
+        }
+
+        fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E>
+            where
+                E: de::Error, {
+            Ok(v)
+        }
+
+        fn visit_str<E>(self, v: &str) -> Result<bool, E>
+        where
+            E: de::Error, {
+            if v.eq("true") {
+                return Ok(true);
+            }  
+            Ok(false)
+        }
+    }
+
+    d.deserialize_any(V)
+}
+
+
+
 /// A trigger which rolls the log once it has passed a certain size.
-#[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default)]
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Default)]
 pub struct SizeTrigger {
     limit: u64,
+    log_date: Option<String>,
 }
 
 impl SizeTrigger {
     /// Returns a new trigger which rolls the log once it has passed the
     /// specified size in bytes.
-    pub fn new(limit: u64) -> SizeTrigger {
-        SizeTrigger { limit }
+    pub fn new(limit: u64, date: bool) -> SizeTrigger {
+        let mut log_date = None;
+        if date {
+            log_date = Some(chrono::Local::now().format("%Y%m%d").to_string());
+        }
+        SizeTrigger { 
+            limit, 
+            log_date,
+        }
     }
 }
 
 impl Trigger for SizeTrigger {
     fn trigger(&self, file: &LogFile) -> anyhow::Result<bool> {
+        if let Some(now) = &self.log_date {
+            if *now != chrono::Local::now().format("%Y%m%d").to_string() {
+                return Ok(true);
+            }
+        }
         Ok(file.len_estimate() > self.limit)
     }
 }
@@ -146,6 +198,6 @@ impl Deserialize for SizeTriggerDeserializer {
         config: SizeTriggerConfig,
         _: &Deserializers,
     ) -> anyhow::Result<Box<dyn Trigger>> {
-        Ok(Box::new(SizeTrigger::new(config.limit)))
+        Ok(Box::new(SizeTrigger::new(config.limit, config.date)))
     }
 }
