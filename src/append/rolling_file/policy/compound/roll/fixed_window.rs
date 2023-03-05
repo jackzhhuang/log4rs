@@ -2,17 +2,19 @@
 //!
 //! Requires the `fixed_window_roller` feature.
 
-use anyhow::bail;
+use anyhow::{bail, anyhow};
 #[cfg(feature = "background_rotation")]
 use parking_lot::{Condvar, Mutex};
+use serde::__private::de;
 #[cfg(feature = "background_rotation")]
 use std::sync::Arc;
+use regex::Regex;
 use std::{
     fs, io,
-    path::{Path, PathBuf},
+    path::{Path, PathBuf}, borrow::Borrow,
 };
 
-use crate::append::env_util::expand_env_vars;
+use crate::{append::env_util::expand_env_vars, encode::pattern};
 use crate::append::rolling_file::policy::compound::roll::Roll;
 #[cfg(feature = "config_parsing")]
 use crate::config::{Deserialize, Deserializers};
@@ -192,6 +194,19 @@ where
     temp
 }
 
+fn replace_var(pattern: &str, base: u32) -> String {
+    let mut p = pattern.replace("{}", &base.to_string());
+    if pattern.contains("{d}") {
+        let now = chrono::prelude::Local::now().format("%Y%m%d").to_string();
+
+        let re = Regex::new(r"\{d\}").unwrap();
+
+        p = re.replace_all(&p, &now).to_string();
+    }
+
+    p
+}
+
 // TODO(eas): compress to tmp file then move into place once prev task is done
 fn rotate(
     pattern: String,
@@ -200,7 +215,7 @@ fn rotate(
     count: u32,
     file: PathBuf,
 ) -> io::Result<()> {
-    let dst_0 = expand_env_vars(pattern.replace("{}", &base.to_string()));
+    let dst_0 = expand_env_vars(replace_var(&pattern, base));
 
     if let Some(parent) = Path::new(dst_0.as_ref()).parent() {
         fs::create_dir_all(parent)?;
@@ -217,8 +232,8 @@ fn rotate(
     };
 
     for i in (base..base + count - 1).rev() {
-        let src = expand_env_vars(pattern.replace("{}", &i.to_string()));
-        let dst = expand_env_vars(pattern.replace("{}", &(i + 1).to_string()));
+        let src = expand_env_vars(replace_var(&pattern, i));
+        let dst = expand_env_vars(replace_var(&pattern, i + 1));
 
         if parent_varies {
             if let Some(parent) = Path::new(dst.as_ref()).parent() {
