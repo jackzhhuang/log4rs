@@ -69,7 +69,7 @@ fn mk_config(file_size: u64, file_count: u32) -> log4rs::config::Config {
         config::{Appender, Config, Logger, Root},
         encode::pattern::PatternEncoder,
     };
-    let trigger = policy::compound::trigger::size::SizeTrigger::new(file_size, false);
+    let trigger = policy::compound::trigger::size::SizeTrigger::new(file_size);
     let roller = policy::compound::roll::fixed_window::FixedWindowRoller::builder()
         .build(&roll_pattern, file_count)
         .unwrap();

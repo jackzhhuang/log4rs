@@ -32,6 +32,7 @@ console_writer = ["ansi_writer", "libc", "winapi"]
 simple_writer = []
 threshold_filter = []
 background_rotation = []
+compound_trigger = []
 
 all_components = [
     "console_appender",
@@ -43,7 +44,8 @@ all_components = [
     "size_trigger",
     "json_encoder",
     "pattern_encoder",
-    "threshold_filter"
+    "threshold_filter",
+    "compound_trigger"
 ]
 
 gzip = ["flate2"]
