@@ -2,19 +2,18 @@
 //!
 //! Requires the `fixed_window_roller` feature.
 
-use anyhow::{bail, anyhow};
+use anyhow::{bail};
 #[cfg(feature = "background_rotation")]
 use parking_lot::{Condvar, Mutex};
-use serde::__private::de;
 #[cfg(feature = "background_rotation")]
 use std::sync::Arc;
 use regex::Regex;
 use std::{
     fs, io,
-    path::{Path, PathBuf}, borrow::Borrow,
+    path::{Path, PathBuf},
 };
 
-use crate::{append::env_util::expand_env_vars, encode::pattern};
+use crate::{append::env_util::expand_env_vars};
 use crate::append::rolling_file::policy::compound::roll::Roll;
 #[cfg(feature = "config_parsing")]
 use crate::config::{Deserialize, Deserializers};
