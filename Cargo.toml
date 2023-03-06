@@ -74,6 +74,8 @@ thiserror = "1.0.15"
 anyhow = "1.0.28"
 derivative = "2.1.1"
 regex = "1"
+mockall = "0.11.3"
+mockall_double = "0.3.0"
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", optional = true, features = ["handleapi", "minwindef", "processenv", "winbase", "wincon"] }

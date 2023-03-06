@@ -3,12 +3,15 @@
 //! 
 use chrono;
 use regex::Regex;
+use mockall::{self, automock};
+use mockall_double::double;
 
 /// A log timer that implements some time procesdures logic
 pub struct LogTime {
 
 }
 
+#[automock]
 impl LogTime {
     /// return a formated date 
     pub fn standard_date() -> String {
@@ -41,16 +44,29 @@ impl LogTime {
 
         expanded_time
     }
-}
 
+}
 
 #[cfg(test)]
 mod test {
     use super::*;
 
     #[test]
+    pub fn mock_standard_date() {
+        #[double]
+        use super::LogTime;
+
+        let ctx = MockLogTime::standard_date_context();
+        ctx.expect().returning(|| {
+            "19980618".to_string()
+        });
+        
+        assert_eq!("19980618", LogTime::standard_date());
+    }
+
+    #[test]
     fn standard_date() {
-        println!("{}", LogTime::standard_date());
+        assert_eq!(chrono::Local::now().format("%Y%m%d").to_string(), LogTime::standard_date());
     }
 
     #[test]
