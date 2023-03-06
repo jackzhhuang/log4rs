@@ -7,16 +7,18 @@ use anyhow::{bail};
 use parking_lot::{Condvar, Mutex};
 #[cfg(feature = "background_rotation")]
 use std::sync::Arc;
-use regex::Regex;
 use std::{
     fs, io,
     path::{Path, PathBuf},
 };
+use crate::tool::log_time::LogTime;
+use chrono::{DateTime, Local};
 
 use crate::{append::env_util::expand_env_vars};
 use crate::append::rolling_file::policy::compound::roll::Roll;
 #[cfg(feature = "config_parsing")]
 use crate::config::{Deserialize, Deserializers};
+use regex::Regex;
 
 /// Configuration for the fixed window roller.
 #[cfg(feature = "config_parsing")]
@@ -91,6 +93,7 @@ pub struct FixedWindowRoller {
     count: u32,
     #[cfg(feature = "background_rotation")]
     cond_pair: Arc<(Mutex<bool>, Condvar)>,
+    date: bool,
 }
 
 impl FixedWindowRoller {
@@ -113,6 +116,7 @@ impl Roll for FixedWindowRoller {
             self.base,
             self.count,
             file.to_path_buf(),
+            self.date,
         )?;
 
         Ok(())
@@ -193,13 +197,13 @@ where
     temp
 }
 
-fn replace_var(pattern: &str, base: u32, now: &Option<String>) -> String {
-    let mut p = pattern.replace("{}", &base.to_string());
-    if let Some(now) = now {
-        let re = Regex::new(r"\{d\}").unwrap();
-        p = re.replace_all(&p, now).to_string();
+fn replace_var(pattern: &str, base: u32, date_time: &Option<DateTime<Local>>) -> String {
+    match date_time {
+        Some(d) => {
+            LogTime::expand_time_var(&pattern.replace("{}", &base.to_string()), d)
+        }
+        None => pattern.replace("{}", &base.to_string())
     }
-    p
 }
 
 // TODO(eas): compress to tmp file then move into place once prev task is done
@@ -209,10 +213,11 @@ fn rotate(
     base: u32,
     count: u32,
     file: PathBuf,
+    date: bool,
 ) -> io::Result<()> {
     let mut now = None;
-    if pattern.contains("{d}") {
-        now = Some(chrono::Local::now().format("%Y%m%d").to_string());
+    if date {
+        now = Some(chrono::Local::now());
     }
     let dst_0 = expand_env_vars(replace_var(&pattern, base, &now));
 
@@ -300,8 +305,14 @@ impl FixedWindowRollerBuilder {
             count,
             #[cfg(feature = "background_rotation")]
             cond_pair: Arc::new((Mutex::new(true), Condvar::new())),
+            date: contain_date_var(&pattern),
         })
     }
+}
+
+fn contain_date_var(pattern: &str) -> bool {
+    let re = Regex::new(r"(\{d\})|(\{y\})|(\{m\})|(\{D\})").unwrap();
+    re.is_match(pattern)
 }
 
 /// A deserializer for the `FixedWindowRoller`.
