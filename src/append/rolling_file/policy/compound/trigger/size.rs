@@ -21,6 +21,7 @@ pub struct SizeTriggerConfig {
     limit: u64,
 }
 
+/// deserialize the limit
 #[cfg(feature = "config_parsing")]
 pub fn deserialize_limit<'de, D>(d: D) -> Result<u64, D::Error>
 where
