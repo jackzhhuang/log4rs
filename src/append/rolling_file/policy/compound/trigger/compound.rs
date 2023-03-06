@@ -19,8 +19,6 @@ use crate::tool::log_time::LogTime;
 #[cfg(feature = "config_parsing")]
 use crate::config::{Deserialize, Deserializers};
 
-use chrono;
-
 /// Configuration for the compound trigger.
 #[cfg(feature = "config_parsing")]
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Default, serde::Deserialize)]

@@ -4,6 +4,7 @@
 use chrono;
 use regex::Regex;
 
+/// A log timer that implements some time procesdures logic
 pub struct LogTime {
 
 }
