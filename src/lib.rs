@@ -198,6 +198,7 @@ pub mod append;
 pub mod config;
 pub mod encode;
 pub mod filter;
+pub mod tool;
 #[cfg(feature = "console_writer")]
 mod priv_io;
 

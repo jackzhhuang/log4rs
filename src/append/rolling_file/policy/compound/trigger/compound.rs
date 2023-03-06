@@ -14,6 +14,7 @@ use std::fmt;
 use crate::append::rolling_file::{policy::compound::trigger::Trigger, LogFile};
 use super::size::deserialize_limit;
 use super::size::SizeTrigger;
+use crate::tool::log_time::LogTime;
 
 #[cfg(feature = "config_parsing")]
 use crate::config::{Deserialize, Deserializers};
@@ -81,7 +82,7 @@ impl CompoundTrigger {
     pub fn new(limit: u64, date: bool) -> CompoundTrigger {
         if date {
             unsafe {
-                LOG_DATE = Some(chrono::Local::now().format("%Y%m%d").to_string());
+                LOG_DATE = Some(LogTime::standard_date());
             }
         }
         CompoundTrigger { 
@@ -94,7 +95,7 @@ impl Trigger for CompoundTrigger {
     fn trigger(&self, file: &LogFile) -> anyhow::Result<bool> {
         unsafe {
             if let Some(now) = &LOG_DATE {
-                let new_now = chrono::Local::now().format("%Y%m%d").to_string();
+                let new_now = LogTime::standard_date();
                 if *now != new_now {
                     LOG_DATE = Some(new_now.clone());
                     return Ok(true);
