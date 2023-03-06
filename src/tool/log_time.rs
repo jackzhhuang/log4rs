@@ -4,7 +4,6 @@
 use chrono;
 use regex::Regex;
 use mockall::{self, automock};
-use mockall_double::double;
 
 /// A log timer that implements some time procesdures logic
 pub struct LogTime {
@@ -53,6 +52,7 @@ mod test {
 
     #[test]
     pub fn mock_standard_date() {
+        use mockall_double::double;
         #[double]
         use super::LogTime;
 
